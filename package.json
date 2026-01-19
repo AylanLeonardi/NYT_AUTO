@@ -1,0 +1,17 @@
+{
+  "name": "nytimes-scraper",
+  "version": "1.0.0",
+  "description": "Scraper de notícias do New York Times",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "scrape": "node src/index.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "exceljs": "^4.4.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-adblocker": "^2.13.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
+}
