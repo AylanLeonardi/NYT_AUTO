@@ -10,7 +10,6 @@ async function exportToExcel(articles, searchTerm) {
         { header: 'Título', key: 'titulo', width: 60 },
         { header: 'Data de Publicação', key: 'data_publicacao', width: 20 },
         { header: 'Descrição', key: 'descricao', width: 100 },
-        { header: 'URL', key: 'url', width: 80 }
     ];
 
     articles.forEach(article => {
@@ -18,7 +17,6 @@ async function exportToExcel(articles, searchTerm) {
             titulo: article.titulo,
             data_publicacao: article.data_publicacao,
             descricao: article.descricao,
-            url: article.url
         });
     });
 

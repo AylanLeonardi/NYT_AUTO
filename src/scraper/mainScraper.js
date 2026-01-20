@@ -19,6 +19,8 @@ class NYTimesScraper {
         this.pageHandler = null;
         this.articles = [];
         this.processedTitles = new Set();
+        this.processedLinks = new Set();
+        this.lastProcessedIndex = 0;
     }
 
     async initialize() {
@@ -66,24 +68,38 @@ class NYTimesScraper {
         }
     }
 
-async collectArticles() {
+    async collectArticles() {
         let pageLoads = 0;
         this.articles = [];
         this.processedTitles.clear();
+        this.processedLinks.clear();
+        this.lastProcessedIndex = 0;
 
         while (this.articles.length < NUM_ARTICLES && pageLoads < MAX_PAGE_LOADS) {
-            console.log(`Coletados: ${this.articles.length}/${NUM_ARTICLES}`);
+            console.log(`Coletados: ${this.articles.length}/${NUM_ARTICLES} | Índice atual: ${this.lastProcessedIndex}`);
 
             const visibleArticles = await this.extractVisibleArticles();
+            const totalArticlesOnPage = visibleArticles.length;
 
-            for (const article of visibleArticles) {
+            console.log(`Total de artigos na página: ${totalArticlesOnPage}`);
+
+            for (let i = this.lastProcessedIndex; i < totalArticlesOnPage; i++) {
                 if (this.articles.length >= NUM_ARTICLES) break;
 
-                let finalTitle = article.title.trim();
+                const article = visibleArticles[i];
                 const articleLink = article.link;
 
+                if (!articleLink || this.processedLinks.has(articleLink)) {
+                    console.log(`[${i}] [SKIP] Link já processado ou vazio`);
+                    continue;
+                }
+
+                this.processedLinks.add(articleLink);
+
+                let finalTitle = article.title.trim();
+
                 if (finalTitle === "" && articleLink) {
-                    console.log(`Título vazio no DOM, extraindo da página interna`);
+                    console.log(`[${i}] [DEEP SCAN] Título vazio, extraindo: ${articleLink.substring(0, 60)}...`);
                     finalTitle = await this.pageHandler.extractTitleFromLink(articleLink);
                 }
 
@@ -98,21 +114,28 @@ async collectArticles() {
                             titulo: finalTitle,
                             data_publicacao: formatDate(article.date),
                             descricao: article.description,
-                            url: articleLink
                         });
 
-                        console.log(`Adicionado ${finalTitle.substring(0, 50)}...`);
+                        console.log(`[${i}] ✅ [${this.articles.length}/${NUM_ARTICLES}] ${finalTitle.substring(0, 50)}...`);
                     } else {
-                        console.log(`"${finalTitle.substring(0, 50)}" já existente, ignorando`)
+                        console.log(`[${i}] [SKIP] Título duplicado: "${finalTitle.substring(0, 40)}..."`);
                     }
+                } else {
+                    console.log(`[${i}] [SKIP] Título inválido`);
                 }
             }
 
+            this.lastProcessedIndex = totalArticlesOnPage;
+            console.log(`📍 Novo índice salvo: ${this.lastProcessedIndex}`);
+
             if (this.articles.length < NUM_ARTICLES) {
                 const hasMore = await this.loadMoreArticles();
-                if (!hasMore) break;
+                if (!hasMore) {
+                    console.log('🏁 Não há mais artigos para carregar.');
+                    break;
+                }
                 pageLoads++;
-                await waitWithLog(2500); 
+                await waitWithLog(2500, '⏳ Aguardando próxima página'); 
             }
         }
         return this.articles;
@@ -140,6 +163,7 @@ async collectArticles() {
             const btn = await this.mainPage.$(SELECTORS.SHOW_MORE_BUTTON);
             if (btn) {
                 await btn.click();
+                console.log('🔄 Botão "Show More" clicado');
                 return true;
             }
             return false;
